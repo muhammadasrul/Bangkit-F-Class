@@ -97,12 +97,11 @@ class SQLiteActivity : AppCompatActivity() {
 
         edtBookTitle.setText(book.name)
 
-        val title = edtBookTitle.text.toString()
-
         AlertDialog.Builder(this)
             .setTitle("Edit/Delete")
             .setView(view)
             .setPositiveButton("Edit") { _, _ ->
+                val title = edtBookTitle.text.toString()
                 viewModel.editBook(book.id, title) }
             .setNegativeButton("Delete") { _, _ ->
                 AlertDialog.Builder(this)
