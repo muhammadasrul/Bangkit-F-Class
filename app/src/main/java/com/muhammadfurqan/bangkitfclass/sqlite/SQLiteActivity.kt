@@ -1,11 +1,17 @@
 package com.muhammadfurqan.bangkitfclass.sqlite
 
+import android.content.DialogInterface
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatButton
 import androidx.appcompat.widget.AppCompatEditText
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.muhammadfurqan.bangkitfclass.R
 import com.muhammadfurqan.bangkitfclass.sqlite.db.BookDatabaseManager
 import kotlinx.coroutines.launch
@@ -36,9 +42,10 @@ class SQLiteActivity : AppCompatActivity() {
     private lateinit var etBookName: AppCompatEditText
     private lateinit var btnAdd: AppCompatButton
     private lateinit var btnRead: AppCompatButton
+    private lateinit var rvBookList: RecyclerView
 
-    private val bookDb: BookDatabaseManager by lazy {
-        BookDatabaseManager(this)
+    private val viewModel: BookViewModel by lazy {
+        BookViewModel(application)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,22 +55,19 @@ class SQLiteActivity : AppCompatActivity() {
         etBookName = findViewById(R.id.et_book_name)
         btnAdd = findViewById(R.id.btn_add)
         btnRead = findViewById(R.id.btn_read)
+        rvBookList = findViewById(R.id.rv_book_list)
 
         btnAdd.setOnClickListener {
             onAdd()
         }
 
-        btnRead.setOnClickListener {
-            onRead()
-        }
+        onRead()
     }
 
     private fun onAdd() {
         val bookName = etBookName.text.toString()
         if (bookName.isNotEmpty()) {
-            lifecycleScope.launch {
-                bookDb.saveData(bookName)
-            }
+            viewModel.addBook(bookName)
             etBookName.setText("")
         } else {
             Toast.makeText(this, "Please fill in the book name", Toast.LENGTH_SHORT).show()
@@ -71,11 +75,46 @@ class SQLiteActivity : AppCompatActivity() {
     }
 
     private fun onRead() {
-        val bookList = bookDb.getData()
-        val bookListString = bookList.joinToString(separator = "\n") {
-            "Book ${it.id} is ${it.name}"
-        }
-        Toast.makeText(this, bookListString, Toast.LENGTH_SHORT).show()
+        viewModel.getAllBook()
+        viewModel.bookList.observe(this, {
+            val adapter = BookAdapter(it)
+            rvBookList.layoutManager = LinearLayoutManager(this)
+            rvBookList.adapter = adapter
+            adapter.setOnItemClickCallback(object: OnItemClickCallback {
+                override fun onItemClicked(book: BookModel) {
+                    showBookDialog(book)
+                }
+
+            })
+        })
+    }
+
+    private fun showBookDialog(book: BookModel) {
+
+        val view: View = LayoutInflater.from(this).inflate(R.layout.book_dialog, null)
+
+        val edtBookTitle: AppCompatEditText = view.findViewById(R.id.edt_book_title)
+
+        edtBookTitle.setText(book.name)
+
+        val title = edtBookTitle.text.toString()
+
+        AlertDialog.Builder(this)
+            .setTitle("Edit/Delete")
+            .setView(view)
+            .setPositiveButton("Edit") { _, _ ->
+                viewModel.editBook(book.id, title) }
+            .setNegativeButton("Delete") { _, _ ->
+                AlertDialog.Builder(this)
+                    .setTitle("Delete ${book.name}?")
+                    .setPositiveButton("Ok") { _, _ ->
+                        viewModel.deleteBook(book.id)
+                    }
+                    .setNegativeButton("Cancel") { dialog, _ ->
+                        dialog.cancel()
+                    }
+                    .show() }
+            .show()
     }
 
 }

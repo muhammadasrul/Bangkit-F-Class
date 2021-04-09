@@ -62,4 +62,32 @@ class BookDatabaseManager(context: Context) {
         return bookList
     }
 
+    fun editData(id: Int, title: String) {
+        val writableDb = db.writableDatabase
+
+        val contentValues = ContentValues()
+        contentValues.put(BookDatabaseOpenHelper.KEY_NAME, title)
+
+        writableDb.update(
+            BookDatabaseOpenHelper.TABLE_BOOK,
+            contentValues,
+            "${BookDatabaseOpenHelper.KEY_ID} = ?",
+            arrayOf(id.toString())
+        )
+
+        writableDb.close()
+    }
+
+    fun deleteData(id: Int) {
+        val writableDb = db.writableDatabase
+
+        writableDb.delete(
+            BookDatabaseOpenHelper.TABLE_BOOK,
+            "${BookDatabaseOpenHelper.KEY_ID} = '$id'",
+            null
+        )
+
+        writableDb.close()
+    }
+
 }
